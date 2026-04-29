@@ -397,26 +397,10 @@ export default function ReceivingVsExitTrendChart({
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900 mb-1">
+      <h2 className="text-lg font-semibold text-slate-900 mb-4">
         Daily receiving vs exit trend
       </h2>
       {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
-      <p className="text-sm text-slate-500 mb-1">
-        Two lines compare containers in versus containers out — when
-        &quot;in&quot; stays above &quot;out&quot;, stock tends to build;
-        the opposite suggests clearing.
-      </p>
-      <p className="text-xs text-slate-400 mb-4">
-        Live API data. X-axis steps:{" "}
-        <span className="font-medium text-slate-600">
-          {granularityLabel(granularity)}
-        </span>
-        {filterType === "today" && " (each hour today)."}
-        {filterType === "last7days" && " (each of the last 7 days)."}
-        {filterType === "last3months" && " (weekly buckets)."}
-        {filterType === "custom" &&
-          " (range: 7 days or fewer → days; longer up to ~6 months → weeks; beyond ~6 months up to ~2 years → months; beyond ~2 years → years)."}
-      </p>
       <div className="relative h-80 w-full min-h-[280px]">
         {loading ? (
           <div className="flex h-full items-center justify-center text-slate-400 text-sm">
