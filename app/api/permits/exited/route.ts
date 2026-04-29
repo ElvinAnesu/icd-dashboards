@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
 
     const gateDateConditions = buildDashboardDateConditions(
-      "G.U_GateOutDate",
+      "X.U_GateOutDate",
       filterType,
       startDate,
       endDate
@@ -29,16 +29,21 @@ export async function GET(request: NextRequest) {
     const gateWhereParts = [
       "G.U_BaseDocNo = P.DocEntry",
       ...(bt ? [bt] : []),
-      ...gateDateConditions,
     ];
 
     let query = `
-SELECT P.*
+SELECT P.*, X.U_GateOutDate
 FROM [@BIS_OLPI] P
-WHERE EXISTS (
-  SELECT 1 FROM OIGE G
+CROSS APPLY (
+  SELECT TOP 1 G.U_GateOutDate
+  FROM OIGE G
   WHERE ${gateWhereParts.join(" AND ")}
-)`.trim();
+  ORDER BY G.U_GateOutDate ASC, G.DocEntry ASC
+) X`.trim();
+
+    if (gateDateConditions.length > 0) {
+      query += ` WHERE ${gateDateConditions.join(" AND ")}`;
+    }
 
     const result = await sql.query(query);
 

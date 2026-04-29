@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,6 +25,11 @@ import {
   eachMonthOfInterval,
   eachYearOfInterval,
   differenceInCalendarDays,
+  parseISO,
+  isValid,
+  startOfWeek,
+  startOfMonth,
+  startOfYear,
 } from "date-fns";
 
 export type TrendFilterType =
@@ -53,7 +58,7 @@ function resolveBuckets(
   filterType: TrendFilterType,
   startDate?: Date,
   endDate?: Date
-): { labels: string[]; granularity: Granularity } {
+): { labels: string[]; starts: Date[]; granularity: Granularity } {
   const now = new Date();
 
   if (filterType === "today") {
@@ -62,6 +67,7 @@ function resolveBuckets(
     const hours = eachHourOfInterval({ start: dayStart, end: dayEnd });
     return {
       labels: hours.map((d) => format(d, "HH:mm")),
+      starts: hours,
       granularity: "hour",
     };
   }
@@ -72,6 +78,7 @@ function resolveBuckets(
     const days = eachDayOfInterval({ start, end });
     return {
       labels: days.map((d) => format(d, "EEE d")),
+      starts: days,
       granularity: "day",
     };
   }
@@ -84,6 +91,7 @@ function resolveBuckets(
     );
     return {
       labels: weeks.map((d, i) => `${format(d, "MMM d")} (wk ${i + 1})`),
+      starts: weeks,
       granularity: "week",
     };
   }
@@ -102,6 +110,7 @@ function resolveBuckets(
     const years = eachYearOfInterval({ start: safeStart, end: safeEnd });
     return {
       labels: years.map((d) => format(d, "yyyy")),
+      starts: years,
       granularity: "year",
     };
   }
@@ -109,6 +118,7 @@ function resolveBuckets(
     const months = eachMonthOfInterval({ start: safeStart, end: safeEnd });
     return {
       labels: months.map((d) => format(d, "MMM yyyy")),
+      starts: months,
       granularity: "month",
     };
   }
@@ -119,42 +129,72 @@ function resolveBuckets(
     );
     return {
       labels: weeks.map((d) => format(d, "MMM d")),
+      starts: weeks,
       granularity: "week",
     };
   }
   const days = eachDayOfInterval({ start: safeStart, end: safeEnd });
   return {
     labels: days.map((d) => format(d, "MMM d")),
+    starts: days,
     granularity: "day",
   };
 }
 
-function mockInOut(
-  n: number,
-  granularity: Granularity
-): { inSeries: number[]; outSeries: number[] } {
-  const base =
-    granularity === "hour"
-      ? 3.5
-      : granularity === "day"
-        ? 42
-        : granularity === "week"
-          ? 180
-          : granularity === "month"
-            ? 750
-            : 3200;
+type ReceivedRow = { U_CRDate?: string | null };
+type ExitedRow = { U_GateOutDate?: string | null };
 
-  const inSeries = Array.from({ length: n }, (_, i) => {
-    const wave = Math.sin(i * 0.42 + 0.2) * 0.28;
-    const drift = (i / Math.max(n - 1, 1)) * 0.12;
-    return Math.max(0, Math.round(base * (0.85 + wave + drift)));
-  });
-  const outSeries = Array.from({ length: n }, (_, i) => {
-    const wave = Math.cos(i * 0.38 + 0.5) * 0.26;
-    const drift = (i / Math.max(n - 1, 1)) * 0.1;
-    return Math.max(0, Math.round(base * (0.78 + wave + drift)));
-  });
-  return { inSeries, outSeries };
+function parseMaybeDate(value: unknown): Date | null {
+  if (typeof value !== "string" || value.trim().length <= 0) return null;
+  const d = parseISO(value);
+  if (isValid(d)) return d;
+  const fallback = new Date(value);
+  return isValid(fallback) ? fallback : null;
+}
+
+function bucketStart(date: Date, granularity: Granularity): Date {
+  switch (granularity) {
+    case "hour":
+      return new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        date.getHours(),
+        0,
+        0,
+        0
+      );
+    case "day":
+      return startOfDay(date);
+    case "week":
+      return startOfWeek(date, { weekStartsOn: 1 });
+    case "month":
+      return startOfMonth(date);
+    case "year":
+      return startOfYear(date);
+    default:
+      return startOfDay(date);
+  }
+}
+
+function aggregateSeries<T>(
+  rows: T[],
+  getDateValue: (row: T) => unknown,
+  granularity: Granularity,
+  indexByStart: Map<number, number>,
+  length: number
+): number[] {
+  const out = Array.from({ length }, () => 0);
+  for (const row of rows) {
+    const dt = parseMaybeDate(getDateValue(row));
+    if (!dt) continue;
+    const key = bucketStart(dt, granularity).getTime();
+    const idx = indexByStart.get(key);
+    if (idx !== undefined) {
+      out[idx] += 1;
+    }
+  }
+  return out;
 }
 
 function granularityLabel(g: Granularity): string {
@@ -185,15 +225,101 @@ export default function ReceivingVsExitTrendChart({
   startDate,
   endDate,
 }: ReceivingVsExitTrendChartProps) {
+  const [receivedRows, setReceivedRows] = useState<ReceivedRow[] | null>(null);
+  const [exitedRows, setExitedRows] = useState<ExitedRow[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    params.append("filterType", filterType);
+    if (filterType === "custom") {
+      if (startDate) {
+        params.append("startDate", startDate.toISOString());
+      }
+      if (endDate) {
+        params.append("endDate", endDate.toISOString());
+      }
+    }
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [receivedRes, exitedRes] = await Promise.all([
+          fetch(`/api/containers/received?${params.toString()}`),
+          fetch(`/api/permits/exited?${params.toString()}`),
+        ]);
+
+        const [receivedJson, exitedJson] = await Promise.all([
+          receivedRes.json(),
+          exitedRes.json(),
+        ]);
+
+        if (!receivedRes.ok) {
+          throw new Error(
+            typeof receivedJson?.error === "string"
+              ? receivedJson.error
+              : "Failed loading received containers"
+          );
+        }
+        if (!exitedRes.ok) {
+          throw new Error(
+            typeof exitedJson?.error === "string"
+              ? exitedJson.error
+              : "Failed loading exited permits"
+          );
+        }
+        if (!Array.isArray(receivedJson) || !Array.isArray(exitedJson)) {
+          throw new Error("Unexpected response shape");
+        }
+
+        if (!cancelled) {
+          setReceivedRows(receivedJson as ReceivedRow[]);
+          setExitedRows(exitedJson as ExitedRow[]);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setReceivedRows(null);
+          setExitedRows(null);
+          setError(e instanceof Error ? e.message : "Failed to load");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [filterType, startDate, endDate]);
+
   const { labels, granularity, inSeries, outSeries } = useMemo(() => {
-    const { labels, granularity } = resolveBuckets(
+    const { labels, starts, granularity } = resolveBuckets(
       filterType,
       startDate,
       endDate
     );
-    const { inSeries, outSeries } = mockInOut(labels.length, granularity);
+    const indexByStart = new Map<number, number>();
+    starts.forEach((d, i) => indexByStart.set(d.getTime(), i));
+    const inSeries = aggregateSeries(
+      receivedRows ?? [],
+      (row) => row.U_CRDate,
+      granularity,
+      indexByStart,
+      labels.length
+    );
+    const outSeries = aggregateSeries(
+      exitedRows ?? [],
+      (row) => row.U_GateOutDate,
+      granularity,
+      indexByStart,
+      labels.length
+    );
     return { labels, granularity, inSeries, outSeries };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, receivedRows, exitedRows]);
 
   const data = {
     labels,
@@ -258,7 +384,7 @@ export default function ReceivingVsExitTrendChart({
       y: {
         title: {
           display: true,
-          text: "Containers (mock)",
+          text: "Count",
           color: "#64748b",
           font: { size: 12, weight: "bold" as const },
         },
@@ -274,13 +400,14 @@ export default function ReceivingVsExitTrendChart({
       <h2 className="text-lg font-semibold text-slate-900 mb-1">
         Daily receiving vs exit trend
       </h2>
+      {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
       <p className="text-sm text-slate-500 mb-1">
         Two lines compare containers in versus containers out — when
         &quot;in&quot; stays above &quot;out&quot;, stock tends to build;
         the opposite suggests clearing.
       </p>
       <p className="text-xs text-slate-400 mb-4">
-        Mock data for illustration. X-axis steps:{" "}
+        Live API data. X-axis steps:{" "}
         <span className="font-medium text-slate-600">
           {granularityLabel(granularity)}
         </span>
@@ -291,7 +418,13 @@ export default function ReceivingVsExitTrendChart({
           " (range: 7 days or fewer → days; longer up to ~6 months → weeks; beyond ~6 months up to ~2 years → months; beyond ~2 years → years)."}
       </p>
       <div className="relative h-80 w-full min-h-[280px]">
-        <Line data={data} options={options} />
+        {loading ? (
+          <div className="flex h-full items-center justify-center text-slate-400 text-sm">
+            Loading...
+          </div>
+        ) : (
+          <Line data={data} options={options} />
+        )}
       </div>
     </div>
   );

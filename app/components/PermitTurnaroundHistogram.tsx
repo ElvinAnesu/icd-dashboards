@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,49 +12,112 @@ import {
   type TooltipItem,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
+import type { TrendFilterType } from "@/app/components/ReceivingVsExitTrendChart";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-/** Hour bin edges: [0,6), [6,12), … , [96, ∞). Labels match bins. */
-const BIN_LABELS = [
-  "0–6 h",
-  "6–12 h",
-  "12–24 h",
-  "24–48 h",
-  "48–72 h",
-  "72–96 h",
-  "96+ h",
-] as const;
+type Props = {
+  filterType: TrendFilterType;
+  startDate?: Date;
+  endDate?: Date;
+};
 
-/**
- * Mock histogram counts (permits per bin). Most mass under 24 h; tail shows outliers.
- * Deterministic so SSR/client match.
- */
-const MOCK_BIN_COUNTS: readonly number[] = [38, 72, 65, 41, 28, 14, 22];
+type DistributionResponse = {
+  labels?: unknown;
+  counts?: unknown;
+  sampleCount?: unknown;
+  averageHours?: unknown;
+};
 
-/** Approximate bin midpoints for mean (96+ uses 110 h as stand-in). */
-const BIN_MID_HOURS = [3, 9, 18, 36, 60, 84, 110];
+export default function PermitTurnaroundHistogram({
+  filterType,
+  startDate,
+  endDate,
+}: Props) {
+  const [labels, setLabels] = useState<string[]>([]);
+  const [counts, setCounts] = useState<number[]>([]);
+  const [sampleCount, setSampleCount] = useState(0);
+  const [averageHours, setAverageHours] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-function weightedMeanHours(counts: readonly number[]): number {
-  let sum = 0;
-  let n = 0;
-  for (let i = 0; i < counts.length; i++) {
-    sum += counts[i] * BIN_MID_HOURS[i];
-    n += counts[i];
-  }
-  return n <= 0 ? 0 : sum / n;
-}
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    params.append("filterType", filterType);
+    if (filterType === "custom") {
+      if (startDate) {
+        params.append("startDate", startDate.toISOString());
+      }
+      if (endDate) {
+        params.append("endDate", endDate.toISOString());
+      }
+    }
 
-const TOTAL_MOCK = MOCK_BIN_COUNTS.reduce((a, b) => a + b, 0);
-const AVG_HOURS_MOCK = weightedMeanHours(MOCK_BIN_COUNTS);
+    async function loadDistribution() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(
+          `/api/permits/avg-turnaround/distribution?${params.toString()}`
+        );
+        const json = (await res.json()) as DistributionResponse & { error?: unknown };
+        if (!res.ok) {
+          throw new Error(
+            typeof json?.error === "string" ? json.error : "Request failed"
+          );
+        }
+        const nextLabels = Array.isArray(json.labels)
+          ? json.labels.filter((x): x is string => typeof x === "string")
+          : [];
+        const nextCounts = Array.isArray(json.counts)
+          ? json.counts.filter((x): x is number => typeof x === "number")
+          : [];
+        const nextSampleCount =
+          typeof json.sampleCount === "number" ? json.sampleCount : 0;
+        const nextAverageHours =
+          typeof json.averageHours === "number" && Number.isFinite(json.averageHours)
+            ? json.averageHours
+            : null;
 
-export default function PermitTurnaroundHistogram() {
+        if (!cancelled) {
+          setLabels(nextLabels);
+          setCounts(nextCounts);
+          setSampleCount(nextSampleCount);
+          setAverageHours(nextAverageHours);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setLabels([]);
+          setCounts([]);
+          setSampleCount(0);
+          setAverageHours(null);
+          setError(e instanceof Error ? e.message : "Failed to load");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDistribution();
+    return () => {
+      cancelled = true;
+    };
+  }, [filterType, startDate, endDate]);
+
+  const totalFromCounts = useMemo(
+    () => counts.reduce((a, b) => a + b, 0),
+    [counts]
+  );
+
   const data = {
-    labels: [...BIN_LABELS],
+    labels,
     datasets: [
       {
         label: "Permits",
-        data: [...MOCK_BIN_COUNTS],
+        data: counts,
         backgroundColor: "rgba(59, 130, 246, 0.65)",
         borderColor: "rgba(37, 99, 235, 1)",
         borderWidth: 1,
@@ -78,7 +142,7 @@ export default function PermitTurnaroundHistogram() {
             const y = tooltipItem.parsed.y;
             if (y == null) return "";
             const pct =
-              TOTAL_MOCK <= 0 ? 0 : Math.round((y / TOTAL_MOCK) * 100);
+              totalFromCounts <= 0 ? 0 : Math.round((y / totalFromCounts) * 100);
             return ` ${y} permit${y === 1 ? "" : "s"} (${pct}% of sample)`;
           },
         },
@@ -118,24 +182,31 @@ export default function PermitTurnaroundHistogram() {
         Permit turnaround distribution
       </h2>
       <p className="text-sm text-slate-500 mb-1">
-        Average time from permit creation to permit exit (mock data).
+        Average time from permit creation to permit exit.
       </p>
-      <p className="text-xs text-slate-400 mb-4">
-        Histogram shows how turnaround times are spread—many fast permits with a
-        long tail of slower ones (outliers).
-      </p>
+      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
       <div className="relative h-72 w-full">
-        <Bar data={data} options={options} />
+        {loading ? (
+          <div className="h-full flex items-center justify-center text-sm text-slate-400">
+            Loading...
+          </div>
+        ) : sampleCount <= 0 ? (
+          <div className="h-full flex items-center justify-center text-sm text-slate-400 text-center px-4">
+            No permits with valid issue and exit timestamps in this period.
+          </div>
+        ) : (
+          <Bar data={data} options={options} />
+        )}
       </div>
       <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600 border-t border-slate-100 pt-4">
         <div>
           <span className="text-slate-400">Sample permits</span>{" "}
-          <span className="font-semibold text-slate-800">{TOTAL_MOCK}</span>
+          <span className="font-semibold text-slate-800">{sampleCount}</span>
         </div>
         <div>
           <span className="text-slate-400">Approx. sample mean</span>{" "}
           <span className="font-semibold text-slate-800">
-            {AVG_HOURS_MOCK.toFixed(1)} h
+            {averageHours === null ? "—" : `${averageHours.toFixed(1)} h`}
           </span>
         </div>
       </div>

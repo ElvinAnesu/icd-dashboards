@@ -190,7 +190,11 @@ export default function ICDOperations() {
         </div>
 
         <div className="mt-8">
-          <PermitTurnaroundHistogram />
+          <PermitTurnaroundHistogram
+            filterType={filterType}
+            startDate={startDate}
+            endDate={endDate}
+          />
         </div>
 
         <div className="mt-8">
