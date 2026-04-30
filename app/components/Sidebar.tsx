@@ -3,25 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, DollarSign, PieChart, ChevronLeft, ChevronRight } from "lucide-react";
+import { DollarSign, ChevronLeft, ChevronRight, Ship } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
 const menuItems = [
-  { 
-    name: "ICD Operations", 
+  {
+    name: "ICD Operations",
     path: "/icd-operations",
-    icon: LayoutDashboard,
+    icon: Ship,
   },
-  { 
-    name: "ICD Revenue", 
+  {
+    name: "ICD Revenue",
     path: "/icd-revenue",
     icon: DollarSign,
-  },
-  { 
-    name: "Financial position", 
-    path: "/financial-position",
-    icon: PieChart,
   },
 ];
 
@@ -40,7 +35,7 @@ export default function Sidebar() {
           {!isCollapsed && (
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                ICD Dashboards
+                K2 Boards
               </h1>
               <p className="text-xs text-slate-400 mt-1">Analytics & Insights</p>
             </div>

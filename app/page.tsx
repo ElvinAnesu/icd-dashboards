@@ -1,14 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function Home() {
-  return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-          Welcome to ICD Dashboards
-        </h1>
-        <p className="text-slate-600 text-lg">
-          Select a dashboard from the sidebar to get started with your analytics and insights.
-        </p>
-      </div>
-    </div>
-  );
+  redirect("/icd-operations");
 }
