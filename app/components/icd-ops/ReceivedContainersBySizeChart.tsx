@@ -12,7 +12,7 @@ import {
   type TooltipItem,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
-import type { TrendFilterType } from "@/app/components/ReceivingVsExitTrendChart";
+import type { TrendFilterType } from "@/app/components/icd-ops/ReceivingVsExitTrendChart";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 

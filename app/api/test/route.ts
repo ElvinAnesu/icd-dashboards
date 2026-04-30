@@ -7,7 +7,7 @@ export async function GET() {
 
     const result = await sql.query(`
       SELECT *
-      FROM OIGE
+      FROM INV1
     `);
 
     return Response.json(result.recordset);

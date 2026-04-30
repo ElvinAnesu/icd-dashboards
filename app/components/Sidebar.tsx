@@ -14,8 +14,8 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   { 
-    name: "Cashflow", 
-    path: "/cashflow",
+    name: "ICD Revenue", 
+    path: "/icd-revenue",
     icon: DollarSign,
   },
   { 

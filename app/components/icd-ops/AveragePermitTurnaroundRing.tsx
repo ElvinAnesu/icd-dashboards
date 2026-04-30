@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Clock } from "lucide-react";
-import type { TrendFilterType } from "@/app/components/ReceivingVsExitTrendChart";
+import type { TrendFilterType } from "@/app/components/icd-ops/ReceivingVsExitTrendChart";
 
 function formatAvgHours(h: number | null): { primary: string; secondary: string } {
   if (h === null || !Number.isFinite(h)) return { primary: "—", secondary: "" };

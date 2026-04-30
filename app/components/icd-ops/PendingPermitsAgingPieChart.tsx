@@ -6,44 +6,63 @@ import {
   ArcElement,
   Tooltip,
   Legend,
+  PieController,
   type TooltipItem,
 } from "chart.js";
-import { Doughnut } from "react-chartjs-2";
-import type { TrendFilterType } from "@/app/components/ReceivingVsExitTrendChart";
+import { Pie } from "react-chartjs-2";
+import type { TrendFilterType } from "@/app/components/icd-ops/ReceivingVsExitTrendChart";
+import { parseSapDateWithTime } from "@/lib/permitTimestamps";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend, PieController);
 
 type PermitRow = {
-  U_Type?: string | null;
+  U_DocDate?: string | null;
+  U_ETime?: number | null;
 };
 
-const COLORS = [
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#ec4899",
-  "#06b6d4",
-  "#84cc16",
-  "#f43f5e",
-  "#6366f1",
-  "#14b8a6",
-];
+const LABELS = [
+  "< 12 hrs waiting since creation",
+  "12–24 hrs waiting since creation",
+  "> 24 hrs waiting since creation (critical)",
+] as const;
 
-function aggregateByType(rows: PermitRow[]): { labels: string[]; values: number[] } {
-  const map = new Map<string, number>();
+function hoursWaitingSinceCreation(created: Date, now: Date): number {
+  return (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+}
+
+function bucketPendingHours(rows: PermitRow[]): {
+  under12: number;
+  h12to24: number;
+  over24: number;
+  skipped: number;
+} {
+  const now = new Date();
+  let under12 = 0;
+  let h12to24 = 0;
+  let over24 = 0;
+  let skipped = 0;
+
   for (const row of rows) {
-    const raw = String(row.U_Type ?? "").trim();
-    const key = raw.length > 0 ? raw : "(unspecified)";
-    map.set(key, (map.get(key) ?? 0) + 1);
+    const created = parseSapDateWithTime(row.U_DocDate, row.U_ETime);
+    if (!created) {
+      skipped++;
+      continue;
+    }
+    const h = hoursWaitingSinceCreation(created, now);
+    if (!Number.isFinite(h)) {
+      skipped++;
+      continue;
+    }
+    if (h < 0) {
+      skipped++;
+      continue;
+    }
+    if (h < 12) under12++;
+    else if (h <= 24) h12to24++;
+    else over24++;
   }
-  const entries = [...map.entries()].sort(
-    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], undefined, { sensitivity: "base" })
-  );
-  return {
-    labels: entries.map(([k]) => k),
-    values: entries.map(([, v]) => v),
-  };
+
+  return { under12, h12to24, over24, skipped };
 }
 
 type Props = {
@@ -52,7 +71,7 @@ type Props = {
   endDate?: Date;
 };
 
-export default function ExitedPermitsByTypeChart({
+export default function PendingPermitsAgingPieChart({
   filterType,
   startDate,
   endDate,
@@ -79,7 +98,7 @@ export default function ExitedPermitsByTypeChart({
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/permits/exited?${params.toString()}`);
+        const res = await fetch(`/api/permits/pending?${params.toString()}`);
         const json = await res.json();
         if (!res.ok) {
           throw new Error(
@@ -106,58 +125,55 @@ export default function ExitedPermitsByTypeChart({
     };
   }, [filterType, startDate, endDate]);
 
-  const { labels, values, total } = useMemo(() => {
+  const { values, total, classifiedTotal, skipped } = useMemo(() => {
     const list = rows ?? [];
-    const agg = aggregateByType(list);
-    const sum = agg.values.reduce((a, b) => a + b, 0);
-    return { labels: agg.labels, values: agg.values, total: sum };
+    const b = bucketPendingHours(list);
+    const vals = [b.under12, b.h12to24, b.over24];
+    const classified = vals.reduce((a, x) => a + x, 0);
+    const totalRows = list.length;
+    return {
+      values: vals,
+      total: totalRows,
+      classifiedTotal: classified,
+      skipped: b.skipped,
+    };
   }, [rows]);
-
-  const backgroundColor = useMemo(
-    () => labels.map((_, i) => COLORS[i % COLORS.length]),
-    [labels]
-  );
-
-  const hoverBackgroundColor = useMemo(
-    () => labels.map((_, i) => COLORS[i % COLORS.length]),
-    [labels]
-  );
 
   const data = useMemo(
     () => ({
-      labels,
+      labels: [...LABELS],
       datasets: [
         {
           data: values,
-          backgroundColor,
+          backgroundColor: ["#22c55e", "#f59e0b", "#ef4444"],
           borderColor: "#ffffff",
           borderWidth: 2,
-          hoverBackgroundColor,
+          hoverBackgroundColor: ["#16a34a", "#d97706", "#dc2626"],
         },
       ],
     }),
-    [labels, values, backgroundColor, hoverBackgroundColor]
+    [values]
   );
 
   const options = useMemo(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
-      cutout: "58%",
       plugins: {
         legend: {
           display: true,
           position: "bottom" as const,
           labels: {
             color: "#475569",
-            padding: 14,
+            padding: 12,
+            font: { size: 11 },
             usePointStyle: true,
             pointStyle: "circle",
           },
         },
         tooltip: {
           callbacks: {
-            label: (tooltipItem: TooltipItem<"doughnut">) => {
+            label: (tooltipItem: TooltipItem<"pie">) => {
               const raw = tooltipItem.raw;
               const n =
                 typeof raw === "number"
@@ -167,41 +183,56 @@ export default function ExitedPermitsByTypeChart({
                     : 0;
               if (!Number.isFinite(n)) return "";
               const pct =
-                total <= 0 ? 0 : Math.round((n / total) * 100);
+                classifiedTotal <= 0
+                  ? 0
+                  : Math.round((n / classifiedTotal) * 100);
               return ` ${tooltipItem.label ?? ""}: ${n} (${pct}%)`;
             },
           },
         },
       },
     }),
-    [total]
+    [classifiedTotal]
   );
+
+  const showPie =
+    !loading && !error && classifiedTotal > 0;
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-slate-900 mb-4">
-        Exited permits type
+        Permit Aging
       </h2>
+      
       {error && (
         <p className="text-sm text-red-600 mb-2">{error}</p>
       )}
-      <div className="relative min-h-[14rem] h-64 max-w-md mx-auto">
+      <div className="relative h-56 max-w-md mx-auto">
         {loading ? (
           <div className="flex h-full items-center justify-center text-slate-400 text-sm">
             Loading…
           </div>
-        ) : total <= 0 ? (
+        ) : !showPie ? (
           <div className="flex h-full items-center justify-center text-center text-slate-400 text-sm px-4">
-            No exited permits in this period.
+            {total === 0
+              ? "No pending permits in this period."
+              : "No permits with a parseable creation time to chart."}
           </div>
         ) : (
-          <Doughnut data={data} options={options} />
+          <Pie data={data} options={options} />
         )}
       </div>
-      {!loading && total > 0 && (
+      {!loading && (
         <p className="text-center text-xs text-slate-400 mt-2">
-          Total exited permits:{" "}
+          Pending permits:{" "}
           <span className="font-medium text-slate-600">{total}</span>
+          {skipped > 0 && (
+            <>
+              {" "}
+              · Excluded (time parse):{" "}
+              <span className="font-medium text-slate-600">{skipped}</span>
+            </>
+          )}
         </p>
       )}
     </div>

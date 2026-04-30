@@ -10,7 +10,7 @@ import {
   type TooltipItem,
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
-import type { TrendFilterType } from "@/app/components/ReceivingVsExitTrendChart";
+import type { TrendFilterType } from "@/app/components/icd-ops/ReceivingVsExitTrendChart";
 
 ChartJS.register(ArcElement, Tooltip, Legend, PieController);
 

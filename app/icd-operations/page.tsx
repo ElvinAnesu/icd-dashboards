@@ -3,15 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import StatCard from "@/app/components/StatCard";
 import DateFilter from "@/app/components/DateFilter";
-import PermitsExitGauge from "@/app/components/PermitsExitGauge";
-import ExitedPermitsByTypeChart from "@/app/components/ExitedPermitsByTypeChart";
-import PendingPermitsAgingPieChart from "@/app/components/PendingPermitsAgingPieChart";
-import AveragePermitTurnaroundRing from "@/app/components/AveragePermitTurnaroundRing";
-import ReceivingVsExitTrendChart from "@/app/components/ReceivingVsExitTrendChart";
-import PermitTurnaroundHistogram from "@/app/components/PermitTurnaroundHistogram";
-import ReceivedContainersFclLclGauge from "@/app/components/ReceivedContainersFclLclGauge";
-import ReceivedContainersBySizeChart from "@/app/components/ReceivedContainersBySizeChart";
-import ReceivedContainers20vs40PieChart from "@/app/components/ReceivedContainers20vs40PieChart";
+import PermitsExitGauge from "@/app/components/icd-ops/PermitsExitGauge";
+import ExitedPermitsByTypeChart from "@/app/components/icd-ops/ExitedPermitsByTypeChart";
+import PendingPermitsAgingPieChart from "@/app/components/icd-ops/PendingPermitsAgingPieChart";
+import AveragePermitTurnaroundRing from "@/app/components/icd-ops/AveragePermitTurnaroundRing";
+import ReceivingVsExitTrendChart from "@/app/components/icd-ops/ReceivingVsExitTrendChart";
+import PermitTurnaroundHistogram from "@/app/components/icd-ops/PermitTurnaroundHistogram";
+import ReceivedContainersFclLclGauge from "@/app/components/icd-ops/ReceivedContainersFclLclGauge";
+import ReceivedContainersBySizeChart from "@/app/components/icd-ops/ReceivedContainersBySizeChart";
+import ReceivedContainers20vs40PieChart from "@/app/components/icd-ops/ReceivedContainers20vs40PieChart";
 import { Package, Container, TruckIcon, Calendar } from "lucide-react";
 
 type DateFilterOption = "today" | "last7days" | "last3months" | "custom";
