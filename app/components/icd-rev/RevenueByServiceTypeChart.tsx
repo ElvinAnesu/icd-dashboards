@@ -36,6 +36,7 @@ type Props = {
   filterType: DateFilterOption;
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 };
 
 /** Line/border colors — extended for many ItemCode series from API. */
@@ -68,6 +69,7 @@ export default function RevenueByServiceTypeChart({
   filterType,
   startDate,
   endDate,
+  refreshSignal = 0,
 }: Props) {
   const [payload, setPayload] = useState<ServiceTypeResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,7 +123,7 @@ export default function RevenueByServiceTypeChart({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   const barChartData = useMemo((): ChartData<"bar"> | null => {
     if (!payload || payload.mode !== "bar") {

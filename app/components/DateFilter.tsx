@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -21,9 +22,11 @@ type DateFilterOption = "today" | "last7days" | "last3months" | "custom";
 
 interface DateFilterProps {
   onFilterChange?: (filterType: DateFilterOption, startDate?: Date, endDate?: Date) => void;
+  /** Re-fetch data with the current filter; does not reset the filter UI. */
+  onRefresh?: () => void;
 }
 
-export default function DateFilter({ onFilterChange }: DateFilterProps) {
+export default function DateFilter({ onFilterChange, onRefresh }: DateFilterProps) {
   const [selectedFilter, setSelectedFilter] = useState<DateFilterOption>("today");
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -50,6 +53,19 @@ export default function DateFilter({ onFilterChange }: DateFilterProps) {
           <SelectItem value="custom" className="text-slate-900">Custom</SelectItem>
         </SelectContent>
       </Select>
+
+      {onRefresh && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-lg"
+          className="shrink-0 border-2 border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-400"
+          onClick={onRefresh}
+          aria-label="Refresh data"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      )}
 
       {selectedFilter === "custom" && (
         <div className="flex items-center gap-2">

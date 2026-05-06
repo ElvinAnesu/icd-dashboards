@@ -37,12 +37,14 @@ type Props = {
   filterType: TrendFilterType;
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 };
 
 export default function ReceivedContainersFclLclGauge({
   filterType,
   startDate,
   endDate,
+  refreshSignal = 0,
 }: Props) {
   const [rows, setRows] = useState<FreightRow[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +95,7 @@ export default function ReceivedContainersFclLclGauge({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   const { fcl, lcl, other, total, fclPct } = useMemo(() => {
     const list = rows ?? [];

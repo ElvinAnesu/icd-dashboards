@@ -42,12 +42,14 @@ type Props = {
   filterType: TrendFilterType;
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 };
 
 export default function ReceivedContainersBySizeChart({
   filterType,
   startDate,
   endDate,
+  refreshSignal = 0,
 }: Props) {
   const [rows, setRows] = useState<SizeRow[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +100,7 @@ export default function ReceivedContainersBySizeChart({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   const { labels, counts, total } = useMemo(() => {
     const list = rows ?? [];

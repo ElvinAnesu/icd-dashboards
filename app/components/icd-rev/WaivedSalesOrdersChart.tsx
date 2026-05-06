@@ -61,6 +61,7 @@ type Props = {
   filterType: DateFilterOption;
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 };
 
 export default function WaivedSalesOrdersChart({
@@ -68,6 +69,7 @@ export default function WaivedSalesOrdersChart({
   filterType,
   startDate,
   endDate,
+  refreshSignal = 0,
 }: Props) {
   const [payload, setPayload] = useState<WaiversResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,7 +122,7 @@ export default function WaivedSalesOrdersChart({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   const { chartData, meta } = useMemo(() => {
     const rows = payload?.rows ?? [];

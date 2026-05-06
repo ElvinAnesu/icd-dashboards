@@ -1,15 +1,21 @@
 import sql from "mssql";
 import config from "@/lib/dbconfig";
 import { NextRequest } from "next/server";
+import {
+  normalizeSearchFromParams,
+  buildCharIndexSearchSql,
+} from "@/lib/apiTableSearch";
 
 export async function GET(request: NextRequest) {
   try {
-    await sql.connect(config);
+    const pool = await sql.connect(config);
+    const dbReq = pool.request();
 
     const searchParams = request.nextUrl.searchParams;
     const filterType = searchParams.get("filterType");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const search = normalizeSearchFromParams(searchParams);
 
     let query = "SELECT * FROM [@BIS_CONT1]";
     const conditions: string[] = [];
@@ -46,11 +52,30 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    if (search) {
+      dbReq.input("search", sql.NVarChar(200), search);
+      conditions.push(
+        buildCharIndexSearchSql([
+          "U_MBLNo",
+          "U_HBLNo",
+          "U_CNo",
+          "U_Remarks",
+          "U_size1",
+          "U_SealNo1",
+          "U_SealNo2",
+          "U_ItemCode",
+          "U_ItemName",
+          "DocEntry",
+          "LineId",
+        ])
+      );
+    }
+
     if (conditions.length > 0) {
       query += " WHERE " + conditions.join(" AND ");
     }
 
-    const result = await sql.query(query);
+    const result = await dbReq.query(query);
 
     return Response.json(result.recordset);
   } catch (err: any) {

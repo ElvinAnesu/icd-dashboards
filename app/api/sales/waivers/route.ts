@@ -22,17 +22,17 @@ export async function GET(request: NextRequest) {
 
     const query = `
       SELECT
-        T1.U_WaiveReason AS WaiverReason,
+        T1.U_Weive AS WaiverReason,
         COUNT(*) AS TimesGiven,
         SUM(ISNULL(T1.U_WaiveAmt, 0)) AS TotalWaivedAmount
       FROM ORDR AS T0
       INNER JOIN RDR1 AS T1 ON T0.DocEntry = T1.DocEntry
-      WHERE T1.U_WaiveReason IS NOT NULL
-        AND T1.U_WaiveReason <> ''
-        AND T1.U_WaiveReason <> 'Select'
+      WHERE T1.U_Weive IS NOT NULL
+        AND T1.U_Weive <> ''
+        AND T1.U_Weive <> 'Select'
         AND T0.CANCELED = 'N'
         ${dateClause}
-      GROUP BY T1.U_WaiveReason
+      GROUP BY T1.U_Weive
       ORDER BY SUM(ISNULL(T1.U_WaiveAmt, 0)) DESC
     `;
 

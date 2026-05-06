@@ -16,12 +16,14 @@ type Props = {
   filterType: TrendFilterType;
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 };
 
 export default function PermitsExitGauge({
   filterType,
   startDate,
   endDate,
+  refreshSignal = 0,
 }: Props) {
   const [created, setCreated] = useState<number | null>(null);
   const [pending, setPending] = useState<number | null>(null);
@@ -90,7 +92,7 @@ export default function PermitsExitGauge({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   const { exited, pct } = useMemo(() => {
     if (created === null || pending === null) {

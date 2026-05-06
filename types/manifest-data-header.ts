@@ -1,0 +1,37 @@
+
+export type ManifestDataHeader = {
+  DocEntry: number;
+  DocNum: number;
+  Period: number;
+  Instance: number;
+  Series: number;
+  Handwrtten: string;
+  Canceled: string;
+  Object: string;
+  LogInst: number | null;
+  UserSign: number;
+  Transfered: string;
+  Status: string;
+  CreateDate: string;
+  CreateTime: number;
+  UpdateDate: string;
+  UpdateTime: number;
+  DataSource: string;
+  RequestStatus: string;
+  Creator: string;
+  Remark: string | null;
+  U_MRN: string | null;
+  U_VN: string | null;
+  U_CS: string | null;
+  U_Voyage: string | null;
+  U_DepDate: string | null;
+  U_ARDate: string | null;
+  U_TPAUID: string | null;
+  U_NoOfBL: number | null;
+  U_TO: string | null;
+  U_NoOfCN: number | null;
+  U_DISDate: string | null;
+  U_DISTime: number | null;
+  U_Valid: string | null;
+  U_AAD: string | null;
+};

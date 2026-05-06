@@ -1,0 +1,64 @@
+/**
+ * Manifest (OMAINF) line row for UDO BIS_UDO_OMAINF lines as returned from the API / database.
+ * Field names match the source columns.
+ */
+export type ManifestDataLine = {
+  DocEntry: number;
+  LineId: number;
+  VisOrder: number;
+  Object: string;
+  LogInst: number | null;
+  U_BLTYPE: string | null;
+  U_BLNo: string | null;
+  U_NOP: number | null;
+  U_PUnit: string | null;
+  U_GrWeight: number | null;
+  U_GWUnit: string | null;
+  U_GVolume: number | null;
+  U_GVUnit: string | null;
+  U_IValue: number | null;
+  U_ICurr: string | null;
+  U_IDate: string | null;
+  U_FCharge: number | null;
+  U_FC: string | null;
+  U_CC: string | null;
+  U_IMDG: string | null;
+  U_PType: string | null;
+  U_SAcode: string | null;
+  U_SAName: string | null;
+  U_FCode: string | null;
+  U_FName: string | null;
+  U_FTel: string | null;
+  U_EName: string | null;
+  U_ETel: string | null;
+  U_EAddr: string | null;
+  U_BLType1: string | null;
+  U_ETIN: string | null;
+  U_CsName: string | null;
+  U_CsTel: string | null;
+  U_CsAdd: string | null;
+  U_CsTIN: string | null;
+  U_NName: string | null;
+  U_NTel: string | null;
+  U_NAdd: string | null;
+  U_NTIN: string | null;
+  U_ShMark: string | null;
+  U_PDest: string | null;
+  U_NetW: number | null;
+  U_NetWU: string | null;
+  U_HBLNO: string | null;
+  U_Nom: string | null;
+  U_CustRNo: string | null;
+  U_CustRD: string | null;
+  U_ShDO: string | null;
+  U_SLDOD: string | null;
+  U_DocSP: string | null;
+  U_POD: string | null;
+  U_OilType: string | null;
+  U_POL: string | null;
+  U_NOC: number | null;
+  U_DOG: string | null;
+  U_NomMode: string | null;
+  U_IPOD: string | null;
+  U_IVolume: number | null;
+};

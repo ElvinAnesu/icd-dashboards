@@ -47,12 +47,14 @@ type Props = {
   filterType: TrendFilterType;
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 };
 
 export default function ReceivedContainers20vs40PieChart({
   filterType,
   startDate,
   endDate,
+  refreshSignal = 0,
 }: Props) {
   const [rows, setRows] = useState<SizeRow[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ export default function ReceivedContainers20vs40PieChart({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   const { ft20, ft40, classifiedTotal, discarded } = useMemo(() => {
     const list = rows ?? [];

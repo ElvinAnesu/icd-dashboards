@@ -16,6 +16,7 @@ export default function IcdRevenueDashboard() {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [currency, setCurrency] = useState<CashflowCurrency>("TZS");
+  const [refreshSignal, setRefreshSignal] = useState(0);
 
   const handleFilterChange = useCallback(
     (newFilterType: DateFilterOption, newStartDate?: Date, newEndDate?: Date) => {
@@ -66,7 +67,10 @@ export default function IcdRevenueDashboard() {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <DateFilter onFilterChange={handleFilterChange} />
+            <DateFilter
+              onFilterChange={handleFilterChange}
+              onRefresh={() => setRefreshSignal((n) => n + 1)}
+            />
           </div>
         </div>
 
@@ -75,6 +79,7 @@ export default function IcdRevenueDashboard() {
           filterType={filterType}
           startDate={startDate}
           endDate={endDate}
+          refreshSignal={refreshSignal}
         />
         <div className="mt-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-1">Revenue overview</h2>
@@ -83,6 +88,7 @@ export default function IcdRevenueDashboard() {
             filterType={filterType}
             startDate={startDate}
             endDate={endDate}
+            refreshSignal={refreshSignal}
           />
         </div>
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -91,12 +97,14 @@ export default function IcdRevenueDashboard() {
             filterType={filterType}
             startDate={startDate}
             endDate={endDate}
+            refreshSignal={refreshSignal}
           />
           <WaivedSalesOrdersChart
             currency={currency}
             filterType={filterType}
             startDate={startDate}
             endDate={endDate}
+            refreshSignal={refreshSignal}
           />
         </div>
       </div>

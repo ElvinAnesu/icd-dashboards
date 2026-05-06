@@ -20,6 +20,7 @@ type Props = {
   filterType: TrendFilterType;
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 };
 
 type DistributionResponse = {
@@ -33,6 +34,7 @@ export default function PermitTurnaroundHistogram({
   filterType,
   startDate,
   endDate,
+  refreshSignal = 0,
 }: Props) {
   const [labels, setLabels] = useState<string[]>([]);
   const [counts, setCounts] = useState<number[]>([]);
@@ -105,7 +107,7 @@ export default function PermitTurnaroundHistogram({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   const totalFromCounts = useMemo(
     () => counts.reduce((a, b) => a + b, 0),

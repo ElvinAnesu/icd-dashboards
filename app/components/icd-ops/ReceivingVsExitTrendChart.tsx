@@ -218,12 +218,14 @@ interface ReceivingVsExitTrendChartProps {
   filterType: TrendFilterType;
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 }
 
 export default function ReceivingVsExitTrendChart({
   filterType,
   startDate,
   endDate,
+  refreshSignal = 0,
 }: ReceivingVsExitTrendChartProps) {
   const [receivedRows, setReceivedRows] = useState<ReceivedRow[] | null>(null);
   const [exitedRows, setExitedRows] = useState<ExitedRow[] | null>(null);
@@ -294,7 +296,7 @@ export default function ReceivingVsExitTrendChart({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   const { labels, granularity, inSeries, outSeries } = useMemo(() => {
     const { labels, starts, granularity } = resolveBuckets(

@@ -36,6 +36,7 @@ type Props = {
   filterType?: "today" | "last7days" | "last3months" | "custom";
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 };
 
 type DocTotalRecord = {
@@ -46,7 +47,13 @@ type OutstandingArResponse = {
   outstandingTotal: number;
 };
 
-export default function CashPositionCards({ currency, filterType, startDate, endDate }: Props) {
+export default function CashPositionCards({
+  currency,
+  filterType,
+  startDate,
+  endDate,
+  refreshSignal = 0,
+}: Props) {
   const [totalRevenueTzsMillions, setTotalRevenueTzsMillions] = useState<number>(0);
   const [cashCollectedTzsMillions, setCashCollectedTzsMillions] = useState<number>(0);
   const [arOutstandingTzsMillions, setArOutstandingTzsMillions] = useState<number>(0);
@@ -123,7 +130,7 @@ export default function CashPositionCards({ currency, filterType, startDate, end
     return () => {
       isActive = false;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

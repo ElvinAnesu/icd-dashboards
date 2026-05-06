@@ -37,6 +37,7 @@ type Props = {
   endDate?: Date;
   /** Top customers by total outstanding (API default 12). */
   top?: number;
+  refreshSignal?: number;
 };
 
 function pivotAgingRows(rows: ArAgingDetailRow[]): {
@@ -78,6 +79,7 @@ export default function ArAgingAnalysisChart({
   startDate,
   endDate,
   top = 12,
+  refreshSignal = 0,
 }: Props) {
   const [payload, setPayload] = useState<ArAgingResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -131,7 +133,7 @@ export default function ArAgingAnalysisChart({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate, top]);
+  }, [filterType, startDate, endDate, top, refreshSignal]);
 
   const chartData = useMemo<ChartData<"bar"> | null>(() => {
     if (!payload?.rows?.length) {

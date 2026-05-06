@@ -25,6 +25,7 @@ export default function ICDOperations() {
   const [filterType, setFilterType] = useState<DateFilterOption>("today");
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
+  const [refreshSignal, setRefreshSignal] = useState(0);
 
   const fetchData = useCallback(async () => {
     try {
@@ -79,7 +80,7 @@ export default function ICDOperations() {
     } finally {
       setLoading(false);
     }
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   useEffect(() => {
     fetchData();
@@ -105,7 +106,10 @@ export default function ICDOperations() {
             </h1>
             <p className="text-slate-600">Monitor and analyze your operational metrics</p>
           </div>
-          <DateFilter onFilterChange={handleFilterChange} />
+          <DateFilter
+            onFilterChange={handleFilterChange}
+            onRefresh={() => setRefreshSignal((n) => n + 1)}
+          />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -114,24 +118,28 @@ export default function ICDOperations() {
             value={loading ? "..." : manifestCount ?? 0}
             icon={Package}
             description="Total uploaded manifests"
+            href="/icd-operations/manifests"
           />
           <StatCard
             title="Received Containers"
             value={loading ? "..." : receivedContainersCount ?? 0}
             icon={Container}
             description="Containers received"
+            href="/icd-operations/rec-containers"
           />
           <StatCard
             title="Exited Permits"
             value={loading ? "..." : exitedPermitsCount ?? 0}
             icon={TruckIcon}
-            description="Loading permits exited (gate-out date)"
+            description="Loading permits exited"
+            href="/icd-operations/permits"
           />
           <StatCard
             title="Bookings"
             value={loading ? "..." : bookingsCount ?? 0}
             icon={Calendar}
             description="Container bookings"
+            href="/icd-operations/bookings"
           />
         </div>
 
@@ -144,16 +152,19 @@ export default function ICDOperations() {
               filterType={filterType}
               startDate={startDate}
               endDate={endDate}
+              refreshSignal={refreshSignal}
             />
             <ReceivedContainersBySizeChart
               filterType={filterType}
               startDate={startDate}
               endDate={endDate}
+              refreshSignal={refreshSignal}
             />
             <ReceivedContainers20vs40PieChart
               filterType={filterType}
               startDate={startDate}
               endDate={endDate}
+              refreshSignal={refreshSignal}
             />
           </div>
         </div>
@@ -170,21 +181,25 @@ export default function ICDOperations() {
               filterType={filterType}
               startDate={startDate}
               endDate={endDate}
+              refreshSignal={refreshSignal}
             />
             <ExitedPermitsByTypeChart
               filterType={filterType}
               startDate={startDate}
               endDate={endDate}
+              refreshSignal={refreshSignal}
             />
             <PendingPermitsAgingPieChart
               filterType={filterType}
               startDate={startDate}
               endDate={endDate}
+              refreshSignal={refreshSignal}
             />
             <AveragePermitTurnaroundRing
               filterType={filterType}
               startDate={startDate}
               endDate={endDate}
+              refreshSignal={refreshSignal}
             />
           </div>
         </div>
@@ -194,6 +209,7 @@ export default function ICDOperations() {
             filterType={filterType}
             startDate={startDate}
             endDate={endDate}
+            refreshSignal={refreshSignal}
           />
         </div>
 
@@ -202,6 +218,7 @@ export default function ICDOperations() {
             filterType={filterType}
             startDate={startDate}
             endDate={endDate}
+            refreshSignal={refreshSignal}
           />
         </div>
       </div>

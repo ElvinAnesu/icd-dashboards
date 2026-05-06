@@ -18,12 +18,14 @@ type Props = {
   filterType: TrendFilterType;
   startDate?: Date;
   endDate?: Date;
+  refreshSignal?: number;
 };
 
 export default function AveragePermitTurnaroundRing({
   filterType,
   startDate,
   endDate,
+  refreshSignal = 0,
 }: Props) {
   const [averageHours, setAverageHours] = useState<number | null>(null);
   const [sampleCount, setSampleCount] = useState<number>(0);
@@ -82,7 +84,7 @@ export default function AveragePermitTurnaroundRing({
     return () => {
       cancelled = true;
     };
-  }, [filterType, startDate, endDate]);
+  }, [filterType, startDate, endDate, refreshSignal]);
 
   const { primary, secondary } = useMemo(
     () => formatAvgHours(averageHours),
