@@ -1,6 +1,6 @@
 //import sql from "mssql";
 
-const  isDev = false;
+const  isDev = true;
 
 const config = {
     user: isDev ? "stackwise_user" : "manager_user",
